@@ -70,7 +70,6 @@ const Footer = ({
           </Section>
         </Stack.Col>
       </div>
-      <FooterCenterTunnel.Out />
       <div
         className={clsx("layer-ui__wrapper__footer-right zen-mode-transition", {
           "transition-right": appState.zenModeEnabled,
