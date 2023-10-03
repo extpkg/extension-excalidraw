@@ -23,11 +23,11 @@ export const LibraryMenuControlButtons = ({
       style={style}
     >
       <LibraryMenuBrowseButton
-        id={id}
-        libraryReturnUrl={libraryReturnUrl}
-        theme={theme}
+        // id={id}
+        // libraryReturnUrl={libraryReturnUrl}
+        // theme={theme}
       />
-      {children}
+      {/* {children} */}
     </div>
   );
 };

@@ -1626,11 +1626,13 @@ class App extends React.Component<AppProps, AppState> {
     _event: ext.windows.WindowEvent,
     details: ext.windows.EventDarkMode,
   ) {
-    this.actionManager.executeAction(
-      actionToggleTheme,
-      "api",
-      details.enabled ? THEME.DARK : THEME.LIGHT,
-    );
+    if (this.actionManager) {
+      this.actionManager.executeAction(
+        actionToggleTheme,
+        "api",
+        details.enabled ? THEME.DARK : THEME.LIGHT,
+      );
+    }
   }
 
   public async componentDidMount() {
@@ -1736,7 +1738,9 @@ class App extends React.Component<AppProps, AppState> {
       });
     }
 
-    ext.windows.onUpdatedDarkMode.addListener(this.onSystemDarkModeChange);
+    ext.windows.onUpdatedDarkMode.addListener(
+      this.onSystemDarkModeChange.bind(this)
+    );
   }
 
   public componentWillUnmount() {

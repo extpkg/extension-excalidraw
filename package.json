@@ -7,7 +7,7 @@
   "scripts": {
     "build": "webpack --mode=production --node-env=production",
     "postbuild": "vite build",
-    "build:preview": "npm run build && vite preview --port 5000",
+    "build:preview": "npm run build && vite preview --port 3000",
     "lint": "eslint ."
   },
   "dependencies": {

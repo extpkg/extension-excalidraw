@@ -187,8 +187,53 @@ export const LibraryDropdownMenuButton: React.FC<{
   };
 
   const renderLibraryMenu = () => {
+    const menuItems = [];
+
+    // if (!itemsSelected)
+    //   menuItems.push(
+    //     <DropdownMenu.Item
+    //       onSelect={onLibraryImport}
+    //       icon={LoadIcon}
+    //       data-testid="lib-dropdown--load"
+    //     >
+    //       {t("buttons.load")}
+    //     </DropdownMenu.Item>
+    //   );
+
+    if (!!items.length)
+      menuItems.push(
+        <DropdownMenu.Item
+          onSelect={onLibraryExport}
+          icon={ExportIcon}
+          data-testid="lib-dropdown--export"
+        >
+          {t("buttons.export")}
+        </DropdownMenu.Item>
+      );
+
+    if (!!items.length)
+      menuItems.push(
+        <DropdownMenu.Item
+          onSelect={() => setShowRemoveLibAlert(true)}
+          icon={TrashIcon}
+        >
+          {resetLabel}
+        </DropdownMenu.Item>
+      );
+
+    // if (itemsSelected)
+    //   menuItems.push(
+    //     <DropdownMenu.Item
+    //       icon={publishIcon}
+    //       onSelect={() => setShowPublishLibraryDialog(true)}
+    //       data-testid="lib-dropdown--remove"
+    //     >
+    //       {t("buttons.publishLibrary")}
+    //     </DropdownMenu.Item>
+    //   );
+
     return (
-      <DropdownMenu open={isLibraryMenuOpen}>
+      menuItems.length ? <DropdownMenu open={isLibraryMenuOpen}>
         <DropdownMenu.Trigger
           onToggle={() => setIsLibraryMenuOpen(!isLibraryMenuOpen)}
         >
@@ -199,43 +244,9 @@ export const LibraryDropdownMenuButton: React.FC<{
           onSelect={() => setIsLibraryMenuOpen(false)}
           className="library-menu"
         >
-          {!itemsSelected && (
-            <DropdownMenu.Item
-              onSelect={onLibraryImport}
-              icon={LoadIcon}
-              data-testid="lib-dropdown--load"
-            >
-              {t("buttons.load")}
-            </DropdownMenu.Item>
-          )}
-          {!!items.length && (
-            <DropdownMenu.Item
-              onSelect={onLibraryExport}
-              icon={ExportIcon}
-              data-testid="lib-dropdown--export"
-            >
-              {t("buttons.export")}
-            </DropdownMenu.Item>
-          )}
-          {!!items.length && (
-            <DropdownMenu.Item
-              onSelect={() => setShowRemoveLibAlert(true)}
-              icon={TrashIcon}
-            >
-              {resetLabel}
-            </DropdownMenu.Item>
-          )}
-          {itemsSelected && (
-            <DropdownMenu.Item
-              icon={publishIcon}
-              onSelect={() => setShowPublishLibraryDialog(true)}
-              data-testid="lib-dropdown--remove"
-            >
-              {t("buttons.publishLibrary")}
-            </DropdownMenu.Item>
-          )}
+          {menuItems}
         </DropdownMenu.Content>
-      </DropdownMenu>
+      </DropdownMenu> : <></>
     );
   };
 
