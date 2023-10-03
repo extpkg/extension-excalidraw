@@ -8,8 +8,11 @@
 	"homepage_url": "https://github.com/excalidraw/excalidraw",
 	"icons": {
 		"128": "icons/icon-128.png",
+		"128-dark": "icons/icon-128-dark.png",
 		"background": "icons/icon-background.png",
-		"banner": "icons/icon-banner.png"
+		"background-dark": "icons/icon-background-dark.png",
+		"banner": "icons/icon-banner.png",
+		"banner-dark": "icons/icon-banner-dark.png"
 	},
 	"scripts": [
 		"main.js"
