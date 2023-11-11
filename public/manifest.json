@@ -15,9 +15,6 @@
   },
   "scripts": ["main.js"],
   "modules": {
-    "console": {
-      "permissions": []
-    },
     "runtime": {
       "permissions": []
     },
