@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from "react";
 import {
   Excalidraw,
   MainMenu,
@@ -6,15 +7,17 @@ import {
   languages,
 } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/types/element/types";
-import type { AppState, BinaryFiles } from "@excalidraw/excalidraw/types/types";
-import { useEffect, useState } from "react";
 import useLocalStorageState from "./useLocalStorageState";
+import { useCurrentWindow } from "./useCurrentWindow";
 
 function App() {
   const [langCode, setLangCode] = useLocalStorageState(
     "langCode",
     defaultLang.code,
   );
+
+  const [initialData, setInitialData] = useState({});
+
   const [theme, setTheme] = useLocalStorageState<"dark" | "light">(
     "theme",
     "light",
@@ -23,19 +26,33 @@ function App() {
     "userTheme",
     false,
   );
-  const [initialData, setInitialData] = useState({});
+
+  const currentWindow = useCurrentWindow();
+
+  const setDarkModeOnWindow = useCallback(async () => {
+    if (currentWindow && userTheme)
+      ext.windows.setDarkMode(currentWindow, theme === "dark");
+  }, [currentWindow, userTheme]);
+
+  const onUpdatedDarkMode = useCallback(
+    async (_: unknown, details: { enabled: boolean }) => {
+      if (!userTheme) setTheme(details.enabled ? "dark" : "light");
+    },
+    [userTheme],
+  );
 
   useEffect(() => {
     if (!userTheme) {
-      console.log("userTheme", userTheme);
       ext.windows.getPlatformDarkMode().then((value) => {
         setTheme(value ? "dark" : "light");
       });
-
-      ext.windows.onUpdatedDarkMode.addListener(async (_event, details) => {
-        setTheme(details.enabled ? "dark" : "light");
-      });
     }
+
+    ext.windows.onUpdatedDarkMode.addListener(onUpdatedDarkMode);
+
+    return () => {
+      ext.windows.onUpdatedDarkMode.removeListener(onUpdatedDarkMode);
+    };
   }, [userTheme]);
 
   // this trick is needed to show the welcome screen
@@ -51,31 +68,26 @@ function App() {
     }
   }, []);
 
-  const persist = (
-    elements: readonly ExcalidrawElement[],
-    appState: AppState,
-    files: BinaryFiles,
-  ) => {
-    if (theme !== appState.theme) {
-      setTheme(appState.theme);
-      setUserTheme(true);
-    }
-
-    localStorage.setItem(
-      "library",
-      JSON.stringify({
-        appState: { theme: appState.theme },
-        elements,
-        files,
-      }),
-    );
-  };
-
   return (
     <Excalidraw
       langCode={langCode}
       theme={theme}
-      onChange={persist}
+      onChange={(elements, appState, files) => {
+        if (appState.theme !== theme) {
+          setTheme(appState.theme);
+          setUserTheme(true);
+          setDarkModeOnWindow();
+        }
+
+        localStorage.setItem(
+          "library",
+          JSON.stringify({
+            appState: { theme: appState.theme },
+            elements,
+            files,
+          }),
+        );
+      }}
       initialData={initialData}
       UIOptions={{ canvasActions: { toggleTheme: true } }}
     >
