@@ -1,225 +1,178 @@
-// Excalidraw EXT extension
+type Instance = {
+  tabId: string;
+  windowId: string;
+  websessionId: string;
+  webviewId: string;
+};
 
-// Entry type
-interface Entry {
-  window: ext.windows.Window
-  tab: ext.tabs.Tab
-  websession: ext.websessions.Websession
-  webview: ext.webviews.Webview
-  partition: number
-}
+const title = "Excalidraw";
 
-// Global resources
-const entries: Entry[] = []
+const findFirstEmptySpot = (array: (unknown | null)[]) => {
+  let emptySpotIndex = array.findIndex((item) => item === null);
 
-// Extension clicked
-ext.runtime.onExtensionClick.addListener(async () => {
+  if (emptySpotIndex === -1) emptySpotIndex = array.length;
 
-  // Objects to create
-  let webview: ext.webviews.Webview | null = null
-  let websession: ext.websessions.Websession | null = null
-  let window: ext.windows.Window | null = null
-  let tab: ext.tabs.Tab | null = null
-  
-  try {
-    
-    // Get websession partition
-    let partition = 1
-    for (let i = 0; i < entries.length; i++) {
-      if (entries[i].partition == partition) {
-        partition++
-        i = 0
+  return emptySpotIndex;
+};
+
+class InstancesManager {
+  private instances: (Instance | null)[] = [];
+
+  private creationLocked = false;
+
+  private findInstance({ tabId, windowId }: Partial<Instance>) {
+    const instanceIndex = this.instances.findIndex(
+      (instance) =>
+        (tabId && instance?.tabId === tabId) ||
+        (windowId && instance?.windowId === windowId),
+    );
+    const instance = this.instances[instanceIndex];
+
+    return { instance, instanceIndex };
+  }
+
+  async create() {
+    try {
+      if (this.creationLocked) return;
+      this.creationLocked = true;
+
+      const isDarkMode = await ext.windows.getPlatformDarkMode();
+      const availableSpot = findFirstEmptySpot(this.instances);
+
+      const tab = await ext.tabs.create({
+        index: availableSpot,
+        text: `${title} - #${availableSpot + 1}`,
+        icon: "./assets/128.png",
+        icon_dark: "./assets/128-dark.png",
+      });
+
+      const window = await ext.windows.create({
+        center: true,
+        darkMode: "platform",
+        title: `${title} - #${availableSpot + 1}`,
+        icon: isDarkMode ? "./assets/128.png" : "./assets/128-dark.png",
+        vibrancy: false,
+        minWidth: 730,
+        minHeight: 532,
+      });
+
+      const contentSize = await ext.windows.getContentSize(window.id);
+
+      const permissions = await ext.runtime.getPermissions();
+      const persistent =
+        (permissions["websessions"] ?? {})["create.persistent"]?.granted ??
+        false;
+      const websession = await ext.websessions.create({
+        partition: `${title} - #${availableSpot + 1}`,
+        cache: true,
+        persistent,
+        global: false,
+      });
+
+      const webview = await ext.webviews.create({
+        window,
+        websession,
+        bounds: { ...contentSize, x: 0, y: 0 },
+        autoResize: { horizontal: true, vertical: true },
+      });
+      await ext.webviews.loadFile(webview.id, "index.html");
+
+      // await ext.webviews.openDevTools(webview.id, {
+      //   mode: "detach",
+      //   activate: true,
+      // });
+
+      const instance: Instance = {
+        tabId: tab.id,
+        windowId: window.id,
+        websessionId: websession.id,
+        webviewId: webview.id,
+      };
+
+      this.instances[availableSpot] = instance;
+
+      this.creationLocked = false;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async destroy({ tabId, windowId }: { tabId?: string; windowId?: string }) {
+    try {
+      const { instance, instanceIndex } = this.findInstance({
+        tabId,
+        windowId,
+      });
+
+      if (instance) {
+        await ext.windows.remove(instance.windowId);
+        await ext.tabs.remove(instance.tabId);
+        await ext.webviews.remove(instance.webviewId);
+        await ext.websessions.remove(instance.websessionId);
+        this.instances[instanceIndex] = null;
       }
-    }
-
-    const darkMode = await ext.windows.getPlatformDarkMode()
-    const icon = darkMode ? 'icons/icon-128-dark.png' : 'icons/icon-128.png'
-    // Create window
-    window = await ext.windows.create({
-      title: 'Excalidraw - #' + partition,
-      icon,
-      fullscreenable: true,
-      vibrancy: false,
-      frame: true,
-      minWidth: 500,
-      minHeight: 270,
-    })
-
-    // Create tab
-    tab = await ext.tabs.create({
-      icon: 'icons/icon-128.png',
-      icon_dark: 'icons/icon-128-dark.png',
-      text: 'Excalidraw - #' + partition,
-      mutable: false,
-      closable: true,
-    })
-
-    // Check if persistent permission is granted
-    const permissions = await ext.runtime.getPermissions()
-    const persistent = ((permissions['websessions'] ?? {}) as { [key: string]: any })['create.persistent']?.granted ?? false
-
-    // Create websession
-    websession = await ext.websessions.create({
-      partition: partition.toString(),
-      persistent: persistent,
-      global: false,
-    })
-
-    // Create webview
-    webview = await ext.webviews.create({ websession: websession })
-    const size = await ext.windows.getContentSize(window.id)
-    await ext.webviews.attach(webview.id, window.id)
-    await ext.webviews.setBounds(webview.id, { x: 0, y: 0, width: size.width, height: size.height })
-    await ext.webviews.setAutoResize(webview.id, { width: true, height: true })
-    await ext.webviews.loadFile(webview.id, 'target/index.html')
-    await ext.webviews.focus(webview.id)
-    
-    // Save entry
-    entries.push({
-      window: window,
-      tab: tab,
-      websession: websession,
-      webview: webview,
-      partition: partition,
-    })
-
-  } catch (error) {
-
-    // Print error
-    console.error('ext.runtime.onExtensionClick', JSON.stringify(error))
-
-    // Delete objects
-    if (window) await ext.windows.remove(window.id)
-    if (tab) await ext.tabs.remove(tab.id)
-    if (websession) await ext.websessions.remove(websession.id)
-    if (webview) await ext.webviews.remove(webview.id)
-
-  }
-})
-
-// Get and optionally remove entry from tab id
-function getEntryFromTabId(id: string, remove: boolean): Entry | null {
-  for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i]
-    if (entry.tab.id == id) {
-      if (remove) entries.splice(i, 1)
-      return entry
+    } catch (error) {
+      console.error(error);
     }
   }
-  return null
-}
 
-// Get and optionally remove entry from window id
-function getEntryFromWindowId(id: string, remove: boolean): Entry | null {
-  for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i]
-    if (entry.window.id == id) {
-      if (remove) entries.splice(i, 1)
-      return entry
+  async focusWindow({ tabId }: { tabId: string }) {
+    console.log("focus");
+    const { instance } = this.findInstance({ tabId });
+
+    if (instance) {
+      await ext.windows.restore(instance.windowId);
+      await ext.windows.focus(instance.windowId);
     }
   }
-  return null
+
+  async toggleMute({ tabId }: { tabId: string }) {
+    const { instance } = this.findInstance({ tabId });
+
+    if (instance) {
+      const muted = await ext.webviews.isAudioMuted(instance.webviewId);
+      await ext.webviews.setAudioMuted(instance.webviewId, !muted);
+      await ext.tabs.update(instance.tabId, { muted: !muted });
+    }
+  }
 }
 
-// Remove entry objects
-async function removeEntry(entry: Entry): Promise<void> {
-  await ext.windows.remove(entry.window.id)
-  await ext.tabs.remove(entry.tab.id)
-  await ext.websessions.remove(entry.websession.id)
-  await ext.webviews.remove(entry.webview.id)
-}
+const instanceManager = new InstancesManager();
 
-// Dark mode was updated
-ext.windows.onUpdatedDarkMode.addListener(async (_event, details) => {
-  const icon = details.enabled ? 'icons/icon-128-dark.png' : 'icons/icon-128.png'
-  for (const entry of entries) {
-    await ext.windows.update(entry.window.id, {
-      icon: icon
-    })
-  }
-})
+ext.runtime.onExtensionClick.addListener(async () => {
+  await instanceManager.create();
+});
 
-// Tab was removed by another extension
-ext.tabs.onRemoved.addListener(async (event) => {
-  try {
-
-    // Find and remove entry
-    const entry = getEntryFromTabId(event.id, true)
-    if (entry !== null) await removeEntry(entry)
-    
-  } catch (error) {
-
-    // Print error
-    console.error('ext.tabs.onRemoved', JSON.stringify(error))
-
-  }
-})
-
-// Tab was clicked
 ext.tabs.onClicked.addListener(async (event) => {
-  try {
+  await instanceManager.focusWindow({ tabId: event.id });
+});
 
-    // Remove entry
-    const entry = getEntryFromTabId(event.id, false)
-    if (entry === null) return
-
-    // Restore and focus window
-    await ext.windows.restore(entry.window.id)
-    await ext.windows.focus(entry.window.id)
-    await ext.webviews.focus(entry.webview.id)
-
-  } catch (error) {
-
-    // Print error
-    console.error('ext.tabs.onClicked', JSON.stringify(error))
-
-  }
-})
-
-// Tab was closed
 ext.tabs.onClickedClose.addListener(async (event) => {
-  try {
+  await instanceManager.destroy({ tabId: event.id });
+});
 
-    // Remove entry
-    const entry = getEntryFromTabId(event.id, true)
-    if (entry !== null) await removeEntry(entry)
+ext.tabs.onRemoved.addListener(async (event) => {
+  await instanceManager.destroy({ tabId: event.id });
+});
 
-  } catch (error) {
+ext.tabs.onClickedMute.addListener(async (event) => {
+  await instanceManager.toggleMute({ tabId: event.id });
+});
 
-    // Print error
-    console.error('ext.tabs.onClickedClose', JSON.stringify(error))
-
-  }
-})
-
-// Window was removed by another extension
-ext.windows.onRemoved.addListener(async (event) => {
-  try {
-
-    // Remove entry
-    const entry = getEntryFromWindowId(event.id, true)
-    if (entry !== null) await removeEntry(entry)
-
-  } catch (error) {
-
-    // Print error
-    console.error('ext.windows.onRemoved', JSON.stringify(error))
-
-  }
-})
-
-// Window was closed
 ext.windows.onClosed.addListener(async (event) => {
-  try {
+  await instanceManager.destroy({ windowId: event.id });
+});
 
-    // Remove entry
-    const entry = getEntryFromWindowId(event.id, true)
-    if (entry !== null) await removeEntry(entry)
+ext.windows.onRemoved.addListener(async (event) => {
+  await instanceManager.destroy({ windowId: event.id });
+});
 
-  } catch (error) {
-
-    // Print error
-    console.error('ext.windows.onClosed', JSON.stringify(error))
-
-  }
-})
+ext.windows.onUpdatedDarkMode.addListener(async (event, details) => {
+  console.log("dark");
+  await ext.windows.update(event.id, {
+    icon:
+      details.enabled && details.platform
+        ? "./assets/128.png"
+        : "./assets/128-dark.png",
+  });
+});

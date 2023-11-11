@@ -1,0 +1,38 @@
+{
+  "manifest_version": "ext-v1",
+  "name": "Excalidraw",
+  "short_name": "Excalidraw",
+  "description": "Virtual hand-drawn style whiteboard.",
+  "version": "1.0.0",
+  "author": "EXT, Inc.",
+  "icons": {
+    "128": "./assets/128.png",
+    "128-dark": "./assets/128-dark.png",
+    "banner": "./assets/banner.png",
+    "banner-dark": "./assets/banner-dark.png",
+    "background": "./assets/background.png",
+    "background-dark": "./assets/background-dark.png"
+  },
+  "scripts": ["main.js"],
+  "modules": {
+    "console": {
+      "permissions": []
+    },
+    "runtime": {
+      "permissions": []
+    },
+    "tabs": {
+      "permissions": []
+    },
+    "windows": {
+      "permissions": []
+    },
+    "webviews": {
+      "permissions": []
+    },
+    "websessions": {
+      "permissions": [],
+      "optional_permissions": ["create.persistent"]
+    }
+  }
+}

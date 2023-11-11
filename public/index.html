@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Document</title>
+    <link
+      rel="stylesheet"
+      href="./app/index.css"
+    />
+
+    <style>
+      html,
+      body,
+      #root {
+        height: 100%;
+        padding: 0;
+        margin: 0;
+      }
+
+      #frame {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 32px;
+        background-color: transparent;
+        z-index: 2;
+        -webkit-app-region: drag;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="frame"></div>
+    <div id="root"></div>
+    <script>
+      window.EXCALIDRAW_ASSET_PATH = window.location.href.replace(
+        "index.html",
+        "",
+      );
+    </script>
+    <script src="./app/index.js"></script>
+
+    <script type="module">
+      const platformInfo = await ext.runtime.getPlatformInfo();
+      const webview = await ext.webviews.getCurrent();
+      const window = await ext.webviews.getAttachedWindow(webview.id);
+      const insetSize = await ext.windows.getInsetSize(window.id);
+
+      if (platformInfo.os !== "mac" && insetSize) {
+        document.getElementById("frame").style.right = `${insetSize.width}px`;
+      }
+    </script>
+  </body>
+</html>

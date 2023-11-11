@@ -1,14 +1,5 @@
-# Node dependencies
-node_modules/
-
-# Build directory
-dist/
-
-# MacOS folder attributes
-**/.DS_Store
-
-# Visual Studio Code settings
-.vscode/**/*
-!.vscode/settings.json
-
-package-lock.json
+/node_modules
+/dist
+.DS_Store
+*.pem
+*.ext

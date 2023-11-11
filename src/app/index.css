@@ -1,0 +1,14 @@
+html,
+body,
+#root,
+.editor {
+  height: 100%;
+}
+
+/* hides libraries and collaborators island 
+and links in the help dialog because no components
+exported to manage those yet */
+.layer-ui__wrapper__top-right,
+.HelpDialog__header {
+  display: none !important;
+}
